@@ -91,7 +91,7 @@ int http_request(int cfd, int epfd)
     while ((n = Readline(cfd, buf, sizeof(buf))) > 0)
     {
         ;
-    } //将cfd非阻塞，否则循环读完剩下的头部请求内容后read函数继续阻塞导    致下一步无法进行
+    } //将cfd非阻塞，否则循环读完剩下的头部请求内容后read函数继续阻塞导致下一步无法进行
 
     //determine whether the file exits
     struct stat st;
@@ -108,7 +108,6 @@ int http_request(int cfd, int epfd)
     }
     else
     {
-
         //if file found
         //determine file type
         if (S_ISREG(st.st_mode))
@@ -158,6 +157,7 @@ int http_request(int cfd, int epfd)
                     memset(buffer, 0, sizeof(buffer));
                     if (namelist[num]->d_type == DT_DIR)
                     {
+                        //directory files
                         sprintf(buffer, "<li><a href=%s/> %s </a></li>", namelist[num]->d_name, namelist[num]->d_nam e);
                     }
                     else
@@ -177,34 +177,7 @@ int http_request(int cfd, int epfd)
         }
     }
 }
-//HTTP/1.1 200 OK
-int response_header(int cfd, char *status_code, char *msg, char *fileType, int contentLength)
-{
-    char buf[1024] = {0};
-    //HTTP/1.1 200 OK状态行
-    sprintf(buf, "HTTP/1.1 %s %s\r\n", status_code, msg);
-    memset(buffer, 0, sizeof(buffer));
-    if (namelist[num]->d_type == DT_DIR)
-    {
-        sprintf(buffer, "<li><a href=%s/> %s </a></li>", namelist[num]->d_name, namelist[num]->d_nam e);
-    }
-    else
-    {
-        //regular file
-        sprintf(buffer, "<li><a href=%s> %s </a></li>", namelist[num]->d_name, namelist[num]->d_name);
-    }
-    free(namelist[num]);
-    write(cfd, buffer, strlen(buffer));
-}
 
-free(namelist);
-}
-
-//send html tail
-response_file(cfd, "html/dir_tail.html");
-}
-}
-}
 //HTTP/1.1 200 OK
 int response_header(int cfd, char *status_code, char *msg, char *fileType, int contentLength)
 {
