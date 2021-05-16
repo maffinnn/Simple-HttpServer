@@ -41,7 +41,7 @@ size_t Readline(int fd, void *vptr, size_t maxlen)
 
     return n;
 }
-void sighander(int signo)
+void sighandler(int signo)
 {
     printf("signo==[%d]\n", signo);
 }
@@ -49,7 +49,7 @@ int response_header(int, char *, char *, char *, int);
 int response_file(int, char *);
 int http_request(int cfd, int epfd)
 {
-    //¶ÁÈ¡ÇëÇóĞĞÊı¾İ£¬ ·ÖÎö³öÒªÇëÇóµÄ×ÊÔ´ÎÄ¼şÃû
+    //è¯»å–è¯·æ±‚è¡Œæ•°æ®ï¼Œ åˆ†æå‡ºè¦è¯·æ±‚çš„èµ„æºæ–‡ä»¶å
     //read the request header, determine requested resources' file name
     int n;
     char buf[1024];
@@ -57,9 +57,9 @@ int http_request(int cfd, int epfd)
     n = Readline(cfd, buf, sizeof(buf));
     if (n <= 0)
     {
-        //¶Ô·½¹Ø±ÕÁ´½Ó¶ÔÓÚserverÀ´ËµÒ²ÊôÓÚ¶ÁÊÂ¼ş ÄÚºËÓĞÒ»¸öÈı´ÎÎÕÊÖ¹ı³Ì£¬ ÄÚºËÈÎÈ»¿ÉÒÔÈÎÈ»¿ÉÒÔ¼à¿Øµ½¶ÁÊÂ¼ş
-        //n==0 client close connection no more data read ¶Ô·½¹Ø±ÕÁ¬½Ó
-        //n<0 read error ¶ÁÒì³£
+        //å¯¹æ–¹å…³é—­é“¾æ¥å¯¹äºserveræ¥è¯´ä¹Ÿå±äºè¯»äº‹ä»¶ å†…æ ¸æœ‰ä¸€ä¸ªä¸‰æ¬¡æ¡æ‰‹è¿‡ç¨‹ï¼Œ å†…æ ¸ä»»ç„¶å¯ä»¥ä»»ç„¶å¯ä»¥ç›‘æ§åˆ°è¯»äº‹ä»¶
+        //n==0 client close connection no more data read å¯¹æ–¹å…³é—­è¿æ¥
+        //n<0 read error è¯»å¼‚å¸¸
         printf("read error or client connection closed\n");
         close(cfd);
         epoll_ctl(epfd, EPOLL_CTL_DEL, cfd, NULL); //remove fd from the tree
@@ -86,12 +86,12 @@ int http_request(int cfd, int epfd)
     {
         pFILE = fileName + 1; //remove the '\' character
     }
-    //loop to read the rest of the data ±ÜÃâÊı¾İ²úÉúÕ³°ü
+    //loop to read the rest of the data é¿å…æ•°æ®äº§ç”Ÿç²˜åŒ…
     //note that Readline function is a blocking function need to set fd as non blocking
     while ((n = Readline(cfd, buf, sizeof(buf))) > 0)
     {
         ;
-    } //½«cfd·Ç×èÈû£¬·ñÔòÑ­»·¶ÁÍêÊ£ÏÂµÄÍ·²¿ÇëÇóÄÚÈİºóreadº¯Êı¼ÌĞø×èÈûµ¼    ÖÂÏÂÒ»²½ÎŞ·¨½øĞĞ
+    } //å°†cfdéé˜»å¡ï¼Œå¦åˆ™å¾ªç¯è¯»å®Œå‰©ä¸‹çš„å¤´éƒ¨è¯·æ±‚å†…å®¹åreadå‡½æ•°ç»§ç»­é˜»å¡å¯¼    è‡´ä¸‹ä¸€æ­¥æ— æ³•è¿›è¡Œ
 
     //determine whether the file exits
     struct stat st;
@@ -128,17 +128,17 @@ int http_request(int cfd, int epfd)
             //comapr->alphasort or versionsort
             printf("directory file\n");
             //http header
-            //Ä¿Â¼ĞÅÏ¢´æÔÚhtmlÎÄ¼şÀï
+            //ç›®å½•ä¿¡æ¯å­˜åœ¨htmlæ–‡ä»¶é‡Œ
             response_header(cfd, "200", "OK", get_mime_type(".html"), 0);
             //send html header
-            //·¢htmlÎÄ¼şÊ±Í·²¿ºÍÎ²²¿ÊÇ²»±äµÄ ·¢ËÍµÄÊ±ºòÖ»Òª·¢¸öÍ·²¿ºÍÎ²²¿È»ºóÖĞ¼ä×é×°ÆğÀ´±ã¿É
+            //å‘htmlæ–‡ä»¶æ—¶å¤´éƒ¨å’Œå°¾éƒ¨æ˜¯ä¸å˜çš„ å‘é€çš„æ—¶å€™åªè¦å‘ä¸ªå¤´éƒ¨å’Œå°¾éƒ¨ç„¶åä¸­é—´ç»„è£…èµ·æ¥ä¾¿å¯
             response_file(cfd, "html/dir_header.html");
 
             //send file directory list
             char buffer[1024];
             struct dirent **namelist;
             int num;
-            //·µ»Ø¶Áµ½µÄÄ¿Â¼ÎÄ¼ş¸öÊı
+            //è¿”å›è¯»åˆ°çš„ç›®å½•æ–‡ä»¶ä¸ªæ•°
             num = scandir(pFILE, &namelist, NULL, alphasort);
             if (num < 0)
             {
@@ -181,7 +181,7 @@ int http_request(int cfd, int epfd)
 int response_header(int cfd, char *status_code, char *msg, char *fileType, int contentLength)
 {
     char buf[1024] = {0};
-    //HTTP/1.1 200 OK×´Ì¬ĞĞ
+    //HTTP/1.1 200 OKçŠ¶æ€è¡Œ
     sprintf(buf, "HTTP/1.1 %s %s\r\n", status_code, msg);
     memset(buffer, 0, sizeof(buffer));
     if (namelist[num]->d_type == DT_DIR)
@@ -209,17 +209,17 @@ response_file(cfd, "html/dir_tail.html");
 int response_header(int cfd, char *status_code, char *msg, char *fileType, int contentLength)
 {
     char buf[1024] = {0};
-    //HTTP/1.1 200 OK×´Ì¬ĞĞ
+    //HTTP/1.1 200 OKçŠ¶æ€è¡Œ
     sprintf(buf, "HTTP/1.1 %s %s\r\n", status_code, msg);
     //content type
     sprintf(buf + strlen(buf), "Content-Type:%s\r\n", fileType);
-    //ÒªÃ´Ğ´×¼È·µÄÒªÃ´²»Ğ´
+    //è¦ä¹ˆå†™å‡†ç¡®çš„è¦ä¹ˆä¸å†™
     if (contentLength > 0)
     {
         sprintf(buf + strlen(buf), "Content-Length:%d\r\n", contentLength);
     }
     strcat(buf, "\r\n");
-    //ÒÔÉÏ°ÑÎÄ¼şÍ·²¿ĞÅÏ¢ÒÑ¾­Æ´ºÃÁË
+    //ä»¥ä¸ŠæŠŠæ–‡ä»¶å¤´éƒ¨ä¿¡æ¯å·²ç»æ‹¼å¥½äº†
     write(cfd, buf, strlen(buf));
 
     return 0;
@@ -235,7 +235,7 @@ int response_file(int cfd, char *fileName)
         return -1;
     }
 
-    //loop to read Ñ­»·¶ÁÎÄ¼ş
+    //loop to read å¾ªç¯è¯»æ–‡ä»¶
     char buf[1024];
     int n;
     while (1)
@@ -259,17 +259,17 @@ int response_file(int cfd, char *fileName)
 int main()
 {
 
-    //Èôweb·şÎñÆ÷¸øä¯ÀÀÆ÷·¢ËÍÊı¾İÊ±£¬ ä¯ÀÀÆ÷ÒÑ¹Ø±ÕÁ´½Ó
-    //Ôòweb·şÎñÆ÷¾Í»áÊÕµ½sigpipeĞÅºÅ Ä¬ÈÏ¶¯×÷ÎªÖÕÖ¹½ø³Ì
-    //´Ë´¦Ö±½ÓºöÂÔ²»´¦Àí
+    //è‹¥webæœåŠ¡å™¨ç»™æµè§ˆå™¨å‘é€æ•°æ®æ—¶ï¼Œ æµè§ˆå™¨å·²å…³é—­é“¾æ¥
+    //åˆ™webæœåŠ¡å™¨å°±ä¼šæ”¶åˆ°sigpipeä¿¡å· é»˜è®¤åŠ¨ä½œä¸ºç»ˆæ­¢è¿›ç¨‹
+    //æ­¤å¤„ç›´æ¥å¿½ç•¥ä¸å¤„ç†
     signal(SIGPIPE, SIG_IGN);
 
-    //¸Ä±äµ±Ç°µÄ¹¤×÷Ä¿Â¼ÕâÑùÊ¹µÃrequested fileÎÄ¼şºÍ´Ë½ø³ÌÊÇÔÚÏàÍ¬Ä¿Â¼ÏÂ
+    //æ”¹å˜å½“å‰çš„å·¥ä½œç›®å½•è¿™æ ·ä½¿å¾—requested fileæ–‡ä»¶å’Œæ­¤è¿›ç¨‹æ˜¯åœ¨ç›¸åŒç›®å½•ä¸‹
     //change current process working directory so as to have the same working dirctiory as the requested file
     char path[256] = {0};
-    //getenv() to get the desired working dirctory »ñÈ¡»·¾³±äÁ¿µÄÖµ
-    //Õâ¸öº¯Êı¿ÉÒÔÍ¨¹ıÕâ¸ö»·¾³±äÁ¿µÄÖµÃû×Ö°ÑÕâ¸ö»·¾³±äÁ¿µÄÖµ´ò³öÀ´
-    sprintf(path, "%s", getenv("HOME")); //ÓÃ»§¼ÒÄ¿Â¼
+    //getenv() to get the desired working dirctory è·å–ç¯å¢ƒå˜é‡çš„å€¼
+    //è¿™ä¸ªå‡½æ•°å¯ä»¥é€šè¿‡è¿™ä¸ªç¯å¢ƒå˜é‡çš„å€¼åå­—æŠŠè¿™ä¸ªç¯å¢ƒå˜é‡çš„å€¼æ‰“å‡ºæ¥
+    sprintf(path, "%s", getenv("HOME")); //ç”¨æˆ·å®¶ç›®å½•
     chdir(path);
 
     //create socket
